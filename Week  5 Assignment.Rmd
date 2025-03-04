@@ -1,0 +1,92 @@
+---
+pdf_document: default
+author: "Jane Song"
+date: "2025-03-03"
+output:
+   html_document: default
+title: "607 Week 5 Assignment"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Open file
+
+```{r}
+library(dplyr)
+library(tidyr)
+
+url <- "https://raw.githubusercontent.com/j-song-npc/607-Week-5-Assignment/refs/heads/main/607%20Assignment%205.csv"
+
+Flights <- read.csv(url, stringsAsFactors = FALSE)
+```
+
+## Clean up table
+```{r}
+
+colnames(Flights) <- c("Airline", "Status", "Los Angeles", "Phoenix", "San Diego", "San Francisco", "Seattle")
+
+Flights <- Flights [-3,]
+
+Flights[2, "Airline"] <- "ALASKA"
+Flights[4, "Airline"] <- "AM WEST"
+
+Flights <- Flights %>%
+  mutate(across(c("Los Angeles", "Phoenix", "San Diego", "San Francisco", "Seattle"), as.character))
+
+rownames(Flights) <- NULL
+
+```
+
+
+## Reformat into long table
+``` {r}
+Flights_long <- Flights %>%
+  pivot_longer(cols = starts_with("Los Angeles"):starts_with("Seattle"),
+               names_to = "City",
+               values_to = "Flight Count")
+
+```
+
+## Analysis of overall delays 
+``` {r}
+
+Flights_long <- Flights_long %>%
+  mutate(`Flight Count` = as.numeric(`Flight Count`))
+
+overall_delayed_rate <- Flights_long %>%
+  group_by(Airline) %>% 
+  summarize(
+    total_flights = sum(`Flight Count`),
+    delayed_flights = sum(`Flight Count`[Status == "delayed"], 
+                          na.rm = TRUE)) %>%
+  
+  mutate(rate = (delayed_flights / total_flights) * 100)
+
+View(overall_delayed_rate)
+
+```
+
+
+## Delays by city
+``` {r}
+
+city_delay_rate <- Flights_long %>%
+  group_by(Airline, City) %>% 
+  summarize(
+    total_flights = sum(`Flight Count`),
+    delayed_flights = sum(`Flight Count`[Status == "delayed"], 
+                          na.rm = TRUE)) %>%
+  
+  mutate(delay_rate = (delayed_flights / total_flights) * 100)
+
+View(city_delay_rate)
+
+```
+
+## Conclusion 
+Both Alaska and AM West flights have similar rates of delays (13% and 11%, respectively). 
+
+Interestingly, AM West has higher rates of delays across every city but this is the opposite when viewing overall numbers. This discrepancy is likely due to the large variances in flights numbers. 
+
